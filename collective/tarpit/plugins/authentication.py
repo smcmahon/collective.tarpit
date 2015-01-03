@@ -2,18 +2,20 @@ from AccessControl.SecurityInfo import ClassSecurityInfo
 from Products.PluggableAuthService.plugins.BasePlugin import BasePlugin
 
 import inspect
-
 import logging
 import logging.handlers
+import random
 
 logger = logging.getLogger("collective.tarpit")
 hdlr = logging.handlers.SysLogHandler(
         address="/dev/log",
         facility=logging.handlers.SysLogHandler.LOG_AUTH,
         )
-formatter = logging.Formatter('plone: %(levelname)s: %(message)s')
-hdlr.setFormatter(formatter)
+# formatter = logging.Formatter('plone: %(message)s')
+# hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
+
+count_base = random.randint(0, 999999999)
 
 
 class AuthenticationPlugin(BasePlugin):
@@ -36,6 +38,8 @@ class AuthenticationPlugin(BasePlugin):
           that it can check to see if the user is already authenticated.
         """
 
+        global count_base
+
         if credentials['extractor'] == 'credentials_basic_auth':
             return None
 
@@ -44,17 +48,19 @@ class AuthenticationPlugin(BasePlugin):
         # handled this attempt.
         authd_user_ids = inspect.stack()[1][0].f_locals['user_ids']
         if not authd_user_ids:
+            count_base += 1
             environ = self.REQUEST.environ
             # let's not send any non-ascii to the log
             login = credentials['login'].decode('utf8', 'replace').encode('ASCII', 'replace')
-            message = 'Failed password for user "%s" site %s from %s' % (
+            message = 'plone[{0}]: Authentication failure for "{1}" site {2} from {3}'.format(
+                count_base,
                 login,
                 '/'.join(self.getPhysicalPath()[:-2]),
                 environ.get(
                     'X-Forwarded-For',
                     environ.get('REMOTE_ADDR', 'NO REMOTE ADDRESS')
-                    )
-            )
+                    ),
+                )
             logger.warning(message)
 
         return None
