@@ -49,17 +49,25 @@ class AuthenticationPlugin(BasePlugin):
         authd_user_ids = inspect.stack()[1][0].f_locals['user_ids']
         if not authd_user_ids:
             count_base += 1
+
+            # get the remote IP, checking sources in light of their
+            # likely reliability.
             environ = self.REQUEST.environ
+            remote_addr = environ.get('HTTP_X_REAL_IP', None)
+            if remote_addr is None:
+                remote_addr = environ.get('HTTP_X_FORWARDED_FOR', None)
+                if remote_addr is not None:
+                    remote_addr = remote_addr.split(',')[0].strip()
+            if remote_addr is None:
+                remote_addr = environ.get('REMOTE_ADDR', 'NO REMOTE ADDR')
+
             # let's not send any non-ascii to the log
             login = credentials['login'].decode('utf8', 'replace').encode('ASCII', 'replace')
             message = 'plone[{0}]: Authentication failure for "{1}" site {2} from {3}'.format(
                 count_base,
                 login,
                 '/'.join(self.getPhysicalPath()[:-2]),
-                environ.get(
-                    'X-Forwarded-For',
-                    environ.get('REMOTE_ADDR', 'NO REMOTE ADDRESS')
-                    ),
+                remote_addr,
                 )
             logger.warning(message)
 
