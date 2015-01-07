@@ -12,7 +12,7 @@ emergency-user logins via the plone login form will be incorrectly diagnosed as 
 Use with a reverse proxy
 ------------------------
 
-If you use a reverse-proxy for rewriting and/or caching, the IP address making the Zope/Plone request will be that of the proxy -- typically 127.0.0.1. This is not useful information. collective.tarpit instead checks first for the X-Real-IP header, which should be set by your reverse proxy to the requesting IP. If X-Real-IP is not available, X-Forwarded-For is checked, that the first address listed is considered the request source.
+If you use a reverse-proxy for rewriting and/or caching, the IP address making the Zope/Plone request will be that of the proxy -- typically 127.0.0.1. This is not useful information. collective.tarpit instead checks first for the X-Real-IP header, which should be set by your reverse proxy to the requesting IP. If X-Real-IP is not available, X-Forwarded-For is checked, and the first address listed is considered the request source.
 
 Finally, if neither X-Real-IP nor X-Forwarded-For is present, the immediately requesting IP will be reported.
 
@@ -21,6 +21,8 @@ This means that you need to configure your outermost reverse-proxy to set X-Real
     proxy_set_header X-Real-IP $remote_addr;
 
 Most or all reverse proxies, including Apache, will have a similar facility, or do this automatically.
+
+If you rely on X-Forwarded-For, make sure that it's being set in a fashion that doesn't allow forgery: don't trust headers set in the original http request.
 
 Use with fail2ban
 -----------------
